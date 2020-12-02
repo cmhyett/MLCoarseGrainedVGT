@@ -1,8 +1,15 @@
-Create issue in github
-Clone repository (git clone ...)
-Create development branch (git checkout -b branchName)
-Develop, track changes via (git add filename)
-Test (more to come here)
-Commit (git commit)
-Push to main branch via (git push)
-Pull request?
+- Create issue in github
+
+- Clone repository (git clone ..., or git pull ...)
+
+- Create development branch (git checkout -b branchName)
+
+- Develop, track changes via (git add filename)
+   Revert added files using (git restore filename)
+
+- Test (more to come here)
+
+- Commit (git commit) tag issue in commit msg "#issueNumber"
+   "fixes #issueNumber" closes the issue upon integration
+
+- Push to main branch via (git push)
