@@ -11,5 +11,9 @@
 
 - Commit (git commit) tag issue in commit msg "#issueNumber"
    "fixes #issueNumber" closes the issue upon integration
-
+   If you want this to remain a separate branch remotely, then use:
+      "git commit -u <upstreamBranch> <thisBranch>"
+   For example, starting a new branch off origin
+      "git commit -u origin newBranch"
+      
 - Push to main branch via (git push)
