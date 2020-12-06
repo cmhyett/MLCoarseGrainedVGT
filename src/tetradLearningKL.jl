@@ -7,7 +7,6 @@ using Zygote;
 using LinearAlgebra;
 using Optim;
 
-#I expect this script to be called
 
 function tetradLearningKL(;seed = nothing, trainingData = nothing, miniBatchSize=1, t=nothing, maxiters = 1000)
 
