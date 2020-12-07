@@ -35,7 +35,7 @@ function TangentLearning(prob::LearningProblem)
 
     epoch = 1;
     function cb(p,l)
-        #display(l);
+        display(l);
         prob.lossArray[epoch] = l;
         epoch += 1;
     end

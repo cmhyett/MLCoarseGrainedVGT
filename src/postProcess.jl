@@ -6,14 +6,31 @@ using Optim;
 using StatsBase;
 using Test;
 
+include("learningProb.jl");
+
 # minimizer      - output from DiffEqFlux.sciml_train()
-# driftNNDims    - array of layer dimensions
-# diffNNDims     - array of layer dimensions
 # validationData   - full set of trajectories (here used as an ensemble solution)
 
 # Assumes all NN layers are fast dense with hyperbolic tangents
-function postProcessSol(minimizer, sdeProb, validationData, tsteps; initLimit = 20.0, finalLimit = 20.0, solver = SOSRI())
+# function postProcessSol(minimizer, sdeProb, validationData, tsteps; initLimit = 20.0, finalLimit = 20.0, solver = SOSRI())
+function QREvolution(prob::LearningProblem)
 
+    # TODO, clean this up. I put this here as a hack so I don't have to change much, but these are redundant.
+    # further, I've consolidated some of this functionality...it'd be nice to rewrite this using standard utility functions
+    minimizer = prob.trainingResults.minimizer;
+    validationData = prob.validationData;
+    tspan = (prob.tsteps[1], prob.tsteps[end]);
+    sdeProb = SDEProblem(prob.drift_,
+                         prob.diff_,
+                         validationData[:,1,1],
+                         tspan,
+                         p = prob.trainingResults.minimizer);
+    initLimit = 20.0;
+    finalLimit = 20.0;
+    solver = SOSRI();
+
+    
+    
     #first, let's figure out binning to create the histograms using the simple validationData
     numTrajectories = size(validationData)[3];
     tspan = (tsteps[1],tsteps[end]);
@@ -237,8 +254,51 @@ end
 #     end
 # end
 
+#TODO having this around is useful on a variety of levels, perhaps export from generateData.jl
+function trueDrift(u, p, t)
+    ρ = reshape(u[1:9],(3,3));
+    M = reshape(u[10:18],(3,3));
+    k = inv(ρ);
+    Π = (k*k')/tr(k*k');
+    placeHolder = [(M'*ρ); (-M^2 + tr(M^2)*Π)];
+    return [reshape(placeHolder[1:3,1:3],9); reshape(placeHolder[4:6,1:3],9)] #du/dt = [ dρdt; dMdt]
+end
+
 #tangent functions is an array of functions that map from \R^18 → \R^2 and return [dR/dt dQ/dt]
-function drawVectorField(data, Rrange, Qrange, tangentFuncs, dt, timepoint; titles = nothing)
+#function drawVectorField(data, Rrange, Qrange, tangentFuncs, dt, timepoint; titles = nothing)
+function drawVectorField(prob::LearningProblem)
+
+    #---------------------------TODO CLEAN ALL THIS UP----------------------#
+    #TODO this is really ugly
+    function learnedRQEvolution(u)
+        M = reshape(u[10:18], (3,3));
+        dM = reshape(prob.drift_(u, prob.trainingResults.minimizer, 0.0)[10:18], (3,3));
+        dQ = -tr(M*dM);
+        dR = -tr(M^2*dM)/3.0;
+        return [dR; dQ];
+    end
+    function trueRQEvolution(u)
+        dM = reshape(trueDrift(u,0.0,0.0)[10:18], (3,3));
+        M = reshape(u[10:18], (3,3));
+        dQ = -tr(M*dM);
+        dR = -tr(M^2*dM)/3.0;
+        return [dR; dQ];
+    end
+    function diff(u)
+        return learnedRQEvolution(u) - trueRQEvolution(u);
+    end
+    
+    # TODO, clean this up. I put this here as a hack so I don't have to change much, but these are redundant.
+    data = prob.validationData; #pretty sure for this Eularian view, I only want first timestep...TODO resolve
+    Rrange = range(-15.0, 15.0, step=1.0);
+    Qrange = range(-15.0, 15.0, step=1.0);
+    tangentFuncs = [trueRQEvolution, learnedRQEvolution, diff]
+    dt = prob.tsteps[2] - prob.tsteps[1];
+    timepoint = 1;
+    titles = ["True RQ Evolution" "Learned RQ Evolution" "Difference"]
+    #---------------------------TODO CLEAN ALL THIS UP END----------------------#
+
+    
     rMid = midpoints(Rrange);
     qMid = midpoints(Qrange);
     pltArr = [];
@@ -303,4 +363,16 @@ function drawVectorField(data, Rrange, Qrange, tangentFuncs, dt, timepoint; titl
 
 
     return pltArr;
+end
+
+
+function postProcess(prob::LearningProblem)
+    plts = drawVectorField(prob);
+    push!(plts, QREvolution(prob));
+    push!(plts, plot(prob.lossArray,
+                       yaxis=:log,
+                       title="Loss for minibatch size of $(prob.miniBatchSize), ODE",
+                       xlabel="epoch"));
+
+    return plts;
 end

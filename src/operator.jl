@@ -22,8 +22,8 @@ function main(args)
     trainingData = deserialize(dataInputPath);
     #split into training/test
     # TODO shouldn't have hardcoded values here
-    validationData = trainingData[:,:,:]; #TODO debug
-    trainingData = trainingData[:,:,:];
+    validationData = trainingData[:,:,1:1000]; #TODO debug
+    trainingData = trainingData[:,:,1:1000];
     numDims, numSteps, numTrajs = size(trainingData);
     tsteps = Array{Float64, 1}(range(0.0, 0.2, length=numSteps));
     miniBatchSize = parse(Int,args[1]);
@@ -32,9 +32,9 @@ function main(args)
     #optimizer = Flux.Optimise.Optimiser(ExpDecay(0.001, 0.1, 300, 1e-5), ADAM(0.001))
     # see https://fluxml.ai/Flux.jl/stable/training/optimisers/
 
-    drift_nn = FastChain(FastDense(18,70,tanh),
-                         FastDense(70,70,tanh),
-                         FastDense(70,9));
+    drift_nn = FastChain(FastDense(18,20,tanh),
+                         FastDense(20,20,tanh),
+                         FastDense(20,9));
 
     function drift(u,p,t)
         ρ = reshape(u[1:9],(3,3));
@@ -73,11 +73,7 @@ function main(args)
 
     @time TangentLearning(lProb);
 
-    p = plot(lProb.lossArray,
-             yaxis=:log,
-             title="Loss for minibatch size of $(lProb.miniBatchSize), ODE",
-             xlabel="epoch");
-    savefig(p, "/groups/chertkov/cmhyett/APS/FollowUp/HyperParameterTuning/miniBatch_$(lProb.miniBatchSize).png");
-    #postProcess(lProb);
+    @time plts = postProcess(lProb);
 
+    return plts;
 end
