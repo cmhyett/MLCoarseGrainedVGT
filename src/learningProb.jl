@@ -35,6 +35,7 @@ end
 
 #--------------constructor for use by operator--------------#
 function LearningProblem(trainingData::Array{Float64, 3},
+                         validationData::Array{Float64, 3},
                          tsteps::Array{Float64, 1},
                          miniBatchSize::Int,
                          maxiters::Int,
