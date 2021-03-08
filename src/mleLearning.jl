@@ -26,6 +26,7 @@ function Learn(prob::LearningProblem)
     #-------Begin training stuff------#
 
     function predict_(x, p)
+        #assume autonomous
         return prob.drift_(x, p, 0.0);
     end
 
@@ -54,20 +55,19 @@ function Learn(prob::LearningProblem)
     lossPerStep = zeros(prob.miniBatchSize);
     
     function lossAndGrads(x,y,p)
-        #precisionMat = inv(parameterizedCovMat(p));
-        #precisionMat = parameterizedPrecisionMat(p[prob.covStart:prob.covEnd]); #TODO directly parameterize precision matrix
         δ = predict_(x,p) .- y;
 
         for i in 1:prob.miniBatchSize
             precisionMat[:,i] .= prob.parameterizedPrecisionMat_(x[:,i],p[diffStart:diffEnd]);
             lossPerStep[i] = dt*dot(δ[:,i],Diagonal(precisionMat[:,i]),δ[:,i]) - log(prod(precisionMat[:,i]));
         end
-        #loss = (dt*dot(δ, precisionMat, δ) - prob.miniBatchSize*log(det(precisionMat)))/prob.miniBatchSize;
         sumLoss = (1/prob.miniBatchSize)*sum(lossPerStep);
 
         #-----------------------------drift grad-----------------------------#
 
         if (prob.driftLength > 0)
+            #x is state variable, w is weight vector, pullback(p->f(x,p), p)[2](w)[1] performs the tensor contraction
+            # (∂/∂p_i f_k) w^k
             ∂f(x,w) = pullback(p->prob.parameterizedDriftClosure_(x,p), p[driftStart:driftEnd])[2](w)[1];
             Threads.@threads for i in 1:prob.miniBatchSize
                 weights = (precisionMat[10:18,i] .* δ[10:18,i])
@@ -80,25 +80,20 @@ function Learn(prob::LearningProblem)
         diffGrad = zeros(prob.diffLength);
         
         if (prob.diffLength > 0)
-            #x is input vector, w is weight vector
+            #x is state variable, w is weight vector, pullback(p->f(x,p), p)[2](w)[1] performs the tensor contraction
+            # (∂/∂p_i f_k) w^k
             ∂Π(x,w) = pullback(p_->prob.parameterizedPrecisionMat_(x,p_), p[diffStart:diffEnd])[2](w)[1];
             
             Threads.@threads for i in 1:prob.miniBatchSize
                 predictionErrorGradHolder[:,i] = ∂Π(x[:,i], abs2.(δ[:,i]));
-                #detPieceHolder[:,i] = prod(precisionMat[:,i])*∂Π(x[:,i], precisionMat[:,i].^(-1));
                 detPieceHolder[:,i] = ∂Π(x[:,i], precisionMat[:,i].^(-1));
             end
             predictionErrorGrad = dt*sum(predictionErrorGradHolder, dims=2);
             detPiece = sum(detPieceHolder, dims=2);
             
-#             Threads.@threads for i in 1:prob.miniBatchSize
-# #                detPiece .+= prod(precisionMat[:,i])*∂Π(x[:,i], precisionMat[:,i].^(-1));
-#             end
-
             diffGrad = (predictionErrorGrad - detPiece)/prob.miniBatchSize;
         end
 
-        # grads = vcat(driftGrad, diffGrad, covGrad);
         grads = vcat(driftGrad, diffGrad);
         grads = reshape(grads, size(grads)[1]);
         return sumLoss,grads;

@@ -9,8 +9,7 @@ using Plots;
 using Serialization;
 
 include("learningProb.jl");
-#include("TangentSpaceLearning.jl");
-#include("postProcess.jl");
+#include("postProcess.jl"); #post processing currently broken
 include("stochasticExtensionOfTetrad.jl");
 include("generateNoisyTetradData.jl");
 
@@ -108,7 +107,7 @@ function main(args)
 #     end
 
     #TODO: at this point we should focus on precision matrix, and the covariance should be a thought for post-processing
-    
+    #TODO: post processing will currently break since cov *should* use Diagonal(p.^(-1))
     #currently, the post-processing depends on the covariance matrix being a constant.
     # If you want some kind of scaling behavoir, it should occur in diff
     function cov(u,p,t)

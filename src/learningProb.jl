@@ -21,13 +21,17 @@ mutable struct LearningProblem
     diff_; #should take u,p,t as params
            # and return noise of length(u)
 
+    # TODO, can probably remove cov_
     cov_; #should take u,p,t as params
           # and return covariance matrix of size (length(u), length(u))
     
     params::Array{Float64, 1};
 
+    #parameter lengths
     driftLength;
     diffLength;
+
+    #functions called by drift_, diff_ respectively
     parameterizedDriftClosure_;
     parameterizedPrecisionMat_;
 
