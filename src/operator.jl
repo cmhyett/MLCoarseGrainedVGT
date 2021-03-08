@@ -132,7 +132,6 @@ function main(args)
         initialParams = vcat(initialParams, ones(diffLength)); #currently using diagonal covariance
     end
     initialParams = Array{Float64}(initialParams);
-    initialParams = ones(18);
 
     @assert length(initialParams) == (driftLength + diffLength)
     
