@@ -4,6 +4,7 @@ using Zygote;
 using Flux;
 using LinearAlgebra;
 using Statistics;
+using Printf;
 
 include("learningProb.jl");
 
@@ -135,7 +136,7 @@ function Learn(prob::LearningProblem)
         batchY = prob.y[:, sampleIdxs];
         prob.lossArray[i] = customTrain!(prob.params, batchX, batchY, prob.optimizer);
         if (i % 50 == 0)
-            display(mean(prob.lossArray[i-49:i]));
+            @printf("%e   %d\n", mean(prob.lossArray[i-49:i]), i);
         end
     end
 
