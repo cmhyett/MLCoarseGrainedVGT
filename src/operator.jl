@@ -10,8 +10,8 @@ using Serialization;
 
 include("learningProb.jl");
 #include("postProcess.jl"); #post processing currently broken
-include("stochasticExtensionOfTetrad.jl");
-include("generateNoisyTetradData.jl");
+include("mleLearning.jl");
+include("../data/generateNoisyTetradData.jl");
 
 function parseTrainingData(data, dt)
     numDims, numSteps, numTrajs = size(data);
@@ -35,7 +35,7 @@ end
 # for this test args will be ignored
 function main(args)
     #--------------------begin problem setup--------------------#
-    initialConditionsPath = "/home/cmhyett/Dropbox/Research/TetradTurbulence/StochasticExtensionOfTetrad/MLCoarseGrainedVGT/src/julia_NiceInitialConditions.dat";
+    initialConditionsPath = "/home/cmhyett/Dropbox/Research/TetradTurbulence/Archive/StochasticExtensionOfTetrad/MLCoarseGrainedVGT/src/julia_NiceInitialConditions.dat";
     initialConditions = deserialize(initialConditionsPath);
     initialConditions = initialConditions[:,1:1000];
     tsteps = Array{Float64, 1}(range(0.0, 0.1, length=30));
@@ -49,8 +49,8 @@ function main(args)
 
     x,y = parseTrainingData(trainingData, dt);
     
-    miniBatchSize = 500; #see HyperParameterTuning for justification
-    maxiters = 1000; #plateau's around 4k
+    miniBatchSize = 300; #see HyperParameterTuning for justification
+    maxiters = 4000; #plateau's around 4k
     optimizer = Flux.Optimise.Optimiser(ExpDecay(0.001, 0.5, 1000, 1e-7), ADAM(0.001));
     # see https://fluxml.ai/Flux.jl/stable/training/optimisers/
 
@@ -67,6 +67,7 @@ function main(args)
         return p;
     end
 
+    #turn off drift gradients
     driftLength = 0; #length(θ_f);
     diffLength = 18;
     

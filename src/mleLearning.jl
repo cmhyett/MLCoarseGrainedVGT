@@ -50,8 +50,6 @@ function Learn(prob::LearningProblem)
     detPieceHolder = zeros(prob.diffLength, prob.miniBatchSize);
     
     precisionMat = zeros(18,prob.miniBatchSize);
-    display(size(precisionMat));
-    precisionMat[:,2];
     lossPerStep = zeros(prob.miniBatchSize);
     
     function lossAndGrads(x,y,p)
