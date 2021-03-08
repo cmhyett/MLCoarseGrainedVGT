@@ -5,6 +5,10 @@ mutable struct LearningProblem
 
     #--------------set by operator--------------#
     trainingData::Array{Float64, 3}; #shape = (18, length(tsteps), trajectories)
+    
+    x::Array{Float64, 2}; #shape=(numdims, numTrajs*(numSteps-1)
+    y::Array{Float64, 2}; #shape=(numdims, numTrajs*(numSteps-1)
+    
     validationData::Array{Float64, 3};
     tsteps::Array{Float64, 1};
     miniBatchSize::Int;
@@ -20,12 +24,15 @@ mutable struct LearningProblem
     cov_; #should take u,p,t as params
           # and return covariance matrix of size (length(u), length(u))
     
-    initialParams::Array{Float64, 1};
+    params::Array{Float64, 1};
 
+    driftLength;
+    diffLength;
+    parameterizedDriftClosure_;
+    parameterizedPrecisionMat_;
 
     #--------------set by training--------------#
     lossArray::Array{Float64, 1};
-    trainingResults;
 
 
     #--------------set by post-processing--------------#
@@ -35,6 +42,8 @@ end
 
 #--------------constructor for use by operator--------------#
 function LearningProblem(trainingData::Array{Float64, 3},
+                         x::Array{Float64, 2},
+                         y::Array{Float64, 2},
                          validationData::Array{Float64, 3},
                          tsteps::Array{Float64, 1},
                          miniBatchSize::Int,
@@ -43,9 +52,15 @@ function LearningProblem(trainingData::Array{Float64, 3},
                          drift_,
                          diff_,
                          cov_,
-                         initialParams::Array{Float64, 1})
+                         initialParams::Array{Float64, 1},
+                         driftLength,
+                         diffLength,
+                         parameterizedDriftClosure_,
+                         parameterizedPrecisionMat_)
     
     return LearningProblem(trainingData,
+                           x,
+                           y,
                            validationData,
                            tsteps,
                            miniBatchSize,
@@ -55,7 +70,10 @@ function LearningProblem(trainingData::Array{Float64, 3},
                            diff_,
                            cov_,
                            initialParams,
+                           driftLength,
+                           diffLength,
+                           parameterizedDriftClosure_,
+                           parameterizedPrecisionMat_,
                            zeros(maxiters), #lossArray
-                           nothing, #trainingResults
                            Dict{String, Plots.Plot{Plots.GRBackend}}()); #plots
 end
